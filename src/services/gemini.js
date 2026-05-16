@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Hardcoded for browser usage as requested
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyBNulGsNG3EYFD3g1He--brjVTRT6pB42Q';
+// Security Note: Never hardcode your API key here. It must only live in your .env file!
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export async function generateFlashcards(text) {
