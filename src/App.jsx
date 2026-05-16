@@ -13,13 +13,13 @@ function App() {
   return (
     <SearchContext.Provider value={{ searchTerm, setSearchTerm }}>
       <Router>
-        <Layout>
-          <Routes>
+        <Routes>
+          <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/input" element={<LectureInput />} />
             <Route path="/flashcards" element={<Flashcards />} />
-          </Routes>
-        </Layout>
+          </Route>
+        </Routes>
       </Router>
     </SearchContext.Provider>
   );
