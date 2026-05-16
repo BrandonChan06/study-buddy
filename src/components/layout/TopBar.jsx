@@ -1,7 +1,10 @@
+import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
+import { SearchContext } from '../../App';
 
 export default function TopBar() {
   const location = useLocation();
+  const { searchTerm, setSearchTerm } = useContext(SearchContext);
   const pathName = location.pathname.substring(1).charAt(0).toUpperCase() + location.pathname.slice(2);
 
   return (
@@ -14,7 +17,13 @@ export default function TopBar() {
       <div className="flex items-center gap-lg">
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-          <input className="bg-surface-container-lowest border border-outline-variant/20 rounded-full py-xs pl-10 pr-md focus:outline-none focus:border-primary/50 text-label-md font-label-md w-64 transition-all duration-300" placeholder="Search archives..." type="text"/>
+          <input 
+            className="bg-surface-container-lowest border border-outline-variant/20 rounded-full py-xs pl-10 pr-md focus:outline-none focus:border-primary/50 text-label-md font-label-md w-64 transition-all duration-300" 
+            placeholder="Search archives..." 
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <div className="flex items-center gap-md">
           <button className="text-on-surface-variant hover:text-on-surface transition-opacity focus:outline-none">

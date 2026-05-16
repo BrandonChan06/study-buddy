@@ -57,3 +57,26 @@ export async function generateFlashcards(text) {
     throw new Error("Error Details: " + (error.message || String(error)));
   }
 }
+
+export async function getDailyQuote() {
+  if (!API_KEY) return null;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+    const prompt = "Generate a short, inspiring scholarly quote about learning or knowledge. Return it as a JSON object with three keys: 'text', 'author', and 'year'. The quote should feel sophisticated and fit a 'Dark Academia' aesthetic.";
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let jsonString = response.text();
+    
+    jsonString = jsonString.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error fetching daily quote:", error);
+    return { 
+      text: "The more that you read, the more things you will know. The more that you learn, the more places you'll go.",
+      author: "Albertus Magnus",
+      year: "1260"
+    };
+  }
+}

@@ -1,21 +1,27 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, createContext } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import LectureInput from './pages/LectureInput';
 import Flashcards from './pages/Flashcards';
 
+export const SearchContext = createContext();
+
 function App() {
+  const [searchTerm, setSearchTerm] = useState('');
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="input" element={<LectureInput />} />
-          <Route path="flashcards" element={<Flashcards />} />
-        </Route>
-      </Routes>
-    </Router>
+    <SearchContext.Provider value={{ searchTerm, setSearchTerm }}>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/input" element={<LectureInput />} />
+            <Route path="/flashcards" element={<Flashcards />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </SearchContext.Provider>
   );
 }
 

@@ -1,25 +1,57 @@
-import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getDecks, updateDeckTitle, deleteDeck } from '../services/db';
+import { useContext } from 'react';
+import { SearchContext } from '../App';
+import { getDecks, updateDeckTitle, deleteDeck, getDecksWithReviews } from '../services/db';
+import { getDailyQuote } from '../services/gemini';
 
 export default function Dashboard() {
   const [recentDecks, setRecentDecks] = useState([]);
+  const [upcomingReviews, setUpcomingReviews] = useState([]);
+  const [dailyQuote, setDailyQuote] = useState({ 
+    text: "The more that you read, the more things you will know. The more that you learn, the more places you'll go.",
+    author: "Albertus Magnus",
+    year: "1260"
+  });
+  const { searchTerm } = useContext(SearchContext);
   const [editingDeckId, setEditingDeckId] = useState(null);
   const [editDeckTitle, setEditDeckTitle] = useState('');
   const [menuOpenDeckId, setMenuOpenDeckId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function loadDecks() {
+    async function loadData() {
       try {
         const decks = await getDecks();
-        setRecentDecks(decks.slice(0, 3)); // Only show top 3 recent
+        setRecentDecks(decks);
+
+        const reviews = await getDecksWithReviews();
+        setUpcomingReviews(reviews);
+
+        // Load daily quote
+        const cachedQuote = localStorage.getItem('dailyQuote');
+        const cachedDate = localStorage.getItem('quoteDate');
+        const today = new Date().toDateString();
+
+        if (cachedQuote && cachedDate === today) {
+          setDailyQuote(JSON.parse(cachedQuote));
+        } else {
+          const newQuote = await getDailyQuote();
+          if (newQuote) {
+            setDailyQuote(newQuote);
+            localStorage.setItem('dailyQuote', JSON.stringify(newQuote));
+            localStorage.setItem('quoteDate', today);
+          }
+        }
       } catch (e) {
-        console.error("Failed to load decks", e);
+        console.error("Failed to load dashboard data", e);
       }
     }
-    loadDecks();
+    loadData();
   }, []);
+
+  const filteredDecks = recentDecks.filter(deck => 
+    deck.title.toLowerCase().includes(searchTerm.toLowerCase())
+  ).slice(0, 3);
 
   const openDeck = (deckId) => {
     navigate('/flashcards', { state: { deckId } });
@@ -66,8 +98,8 @@ export default function Dashboard() {
           </div>
           <div className="relative z-10">
             <h2 className="font-display-lg text-headline-md text-primary mb-md">Scholarly Quote of the Day</h2>
-            <p className="font-display-lg text-headline-lg italic text-on-surface leading-tight mb-md">"The more that you read, the more things you will know. The more that you learn, the more places you'll go."</p>
-            <p className="font-label-md text-label-md text-on-surface-variant tracking-widest">— ALBERTUS MAGNUS, 1260</p>
+            <p className="font-display-lg text-headline-lg italic text-on-surface leading-tight mb-md">"{dailyQuote.text}"</p>
+            <p className="font-label-md text-label-md text-on-surface-variant tracking-widest">— {dailyQuote.author.toUpperCase()}, {dailyQuote.year}</p>
           </div>
         </div>
         <div className="col-span-4 bg-primary-container rounded-[20px] p-lg flex flex-col justify-between border border-primary/20">
@@ -127,26 +159,20 @@ export default function Dashboard() {
           <div className="flex-1 bg-surface-container rounded-[20px] p-lg border border-outline-variant/10">
             <h4 className="font-label-md text-label-md text-on-surface-variant mb-md uppercase tracking-widest">Upcoming Reviews</h4>
             <div className="space-y-sm">
-              <div className="flex items-center justify-between p-sm rounded-lg bg-surface-container-high/50 border border-outline-variant/5">
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-primary">auto_stories</span>
-                  <div>
-                    <p className="font-body-md text-body-md text-on-surface">Stoic Philosophy</p>
-                    <p className="font-body-md text-caption text-on-surface-variant">24 cards due</p>
+              {upcomingReviews.length > 0 ? upcomingReviews.map(review => (
+                <div key={review.id} onClick={() => openDeck(review.id)} className="flex items-center justify-between p-sm rounded-lg bg-surface-container-high/50 border border-outline-variant/5 cursor-pointer hover:bg-surface-container-highest transition-colors">
+                  <div className="flex items-center gap-sm">
+                    <span className="material-symbols-outlined text-primary">auto_stories</span>
+                    <div>
+                      <p className="font-body-md text-body-md text-on-surface">{review.title}</p>
+                      <p className="font-body-md text-caption text-on-surface-variant">{review.count} cards due</p>
+                    </div>
                   </div>
+                  <span className="material-symbols-outlined text-on-surface-variant/40">chevron_right</span>
                 </div>
-                <span className="material-symbols-outlined text-on-surface-variant/40">chevron_right</span>
-              </div>
-              <div className="flex items-center justify-between p-sm rounded-lg bg-surface-container-high/50 border border-outline-variant/5">
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-secondary">history_edu</span>
-                  <div>
-                    <p className="font-body-md text-body-md text-on-surface">Medieval Alchemy</p>
-                    <p className="font-body-md text-caption text-on-surface-variant">12 cards due</p>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-on-surface-variant/40">chevron_right</span>
-              </div>
+              )) : (
+                <p className="font-body-md text-caption text-on-surface-variant text-center py-md">No cards due for review.</p>
+              )}
             </div>
           </div>
           <button className="bg-primary hover:bg-on-primary-container transition-colors duration-300 text-on-primary-fixed font-label-md text-label-md py-md rounded-[20px] flex items-center justify-center gap-sm border-b border-on-primary/20 shadow-lg">
@@ -163,7 +189,7 @@ export default function Dashboard() {
           <a className="font-label-md text-label-md text-primary hover:underline underline-offset-4 transition-all" href="#">View Library</a>
         </div>
         <div className="grid grid-cols-4 gap-gutter">
-          {recentDecks.map((deck, i) => (
+          {filteredDecks.map((deck, i) => (
             <div key={deck.id} onClick={() => openDeck(deck.id)} className="group cursor-pointer">
               <div className="aspect-[4/5] bg-surface-container rounded-[20px] mb-sm overflow-hidden relative border border-outline-variant/10">
                 <img alt="Study Deck" className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" src={`https://lh3.googleusercontent.com/aida-public/${['AB6AXuDJud16-8TpN2IQdlAI9KGH-Kn_w1zLmxHQGhcAlsSK7ix3_QXMABP98KgjGTrhLt00lldme6O4148WlLDB9gegJ55UohC7uCX7Tav41oS6UpBREKo_gBpoMTahSvpVcVzVAzF-7LjOnXFJJXuWwZvfXmd2xT2-qDdLQWAQRCsyQl_dN2G3dtmxLnNQssfSlWg6in5dz_2BED0mcs2dwJN335O1K9SXBQW52kTEuV6CE0rQl0dZRydPrVEnhlWbGZx-ti3UAWw9m2Y', 'AB6AXuBGj9H7WerMkaHx4dgP5qjAimzMvl_CamgvbQTthbNv9waLmjiHUbsRKytIj79lxFetPwqoSc3GLpxAK3paSXV5_AZKQ5pshGxC0LiIyI0S1A7Ytc6p-rvigm7B9UZI-1L_jtUhKOkSXq-bswKkO3p3FBpoXXPwywp2oiYRFaqpfeDaU_eT-VGbnyl-VryU8jEylg9FE271BMDOJJ2SsKR8brJ1gloM2_twDMQbhiwqVPUDRRXugHboufDaM0wwwLq3_-EFlsCFN4g', 'AB6AXuAQBI2sBsxPSxAkgXP8v1yw78MJBaect7a3jSeFyIlOuUgwaVkiKUNj9KvwpK4n2mFg2yOyn_7732B7TpDkU_HC6SLNTK9dWLEaJW4Yo5EmyBDgy-wtz9Te-lTowNHQXezGd5A-Jm3FbQptrqg7t6RSdRcwiuNJaTGng425u1lmohGqraeTZOtsZ01m0Cv2KJrhTgOhV10rJGPE_QudO7HHFKktQJOMmWN7TlS0ecTHr0lZs7d1CWpJAdpbEUfAI6LreN7qjndJuXc'][i % 3]}`} />

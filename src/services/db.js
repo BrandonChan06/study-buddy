@@ -144,3 +144,30 @@ export async function deleteDeck(deckId) {
 
   if (error) throw new Error("Failed to delete deck: " + error.message);
 }
+
+/**
+ * Fetches decks that have at least one card in 'review' status.
+ */
+export async function getDecksWithReviews() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('flashcards')
+    .select('deck_id, decks(id, title)')
+    .eq('status', 'review');
+
+  if (error) throw new Error("Failed to fetch reviews: " + error.message);
+
+  // Group by deck_id and count
+  const counts = data.reduce((acc, card) => {
+    const deck = card.decks;
+    if (!deck) return acc;
+    if (!acc[deck.id]) {
+      acc[deck.id] = { id: deck.id, title: deck.title, count: 0 };
+    }
+    acc[deck.id].count += 1;
+    return acc;
+  }, {});
+
+  return Object.values(counts);
+}
