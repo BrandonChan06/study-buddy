@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { SearchContext } from '../App';
 import { getDecks, updateDeckTitle, deleteDeck, getDecksWithReviews } from '../services/db';
 import { getDailyQuote } from '../services/gemini';
